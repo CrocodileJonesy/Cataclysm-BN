@@ -75,7 +75,7 @@ std::string fake_item_location::describe( const Character *, const item * ) cons
 
 detached_ptr<item> character_item_location::detach( item *it )
 {
-    return holder->i_rem( it );
+    return holder->inv_remove_item( it );
 }
 
 void character_item_location::attach( detached_ptr<item> &&obj )
@@ -477,18 +477,28 @@ std::string vehicle_base_item_location::describe( const Character *, const item 
 
 detached_ptr<item> contents_item_location::detach( item *it )
 {
-    return container->contents.remove_top( it );
+
+    detached_ptr<item> ret = container->contents.remove_top( it );
+    container->on_contents_changed();
+    return ret;
 }
 
 void contents_item_location::attach( detached_ptr<item> &&obj )
 {
     container->contents.insert_item( std::move( obj ) );
+    container->on_contents_changed();
 }
 
 bool contents_item_location::is_loaded( const item * ) const
 {
     return container->is_loaded();
 }
+
+void contents_item_location::on_changed( const item * ) const
+{
+    return container->on_contents_changed();
+}
+
 
 item_location_type contents_item_location::where() const
 {

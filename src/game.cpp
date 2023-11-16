@@ -1457,7 +1457,6 @@ bool game::do_turn()
 
                 if( handle_action() ) {
                     ++moves_since_last_save;
-                    u.action_taken();
                 }
 
                 if( is_game_over() ) {
@@ -9294,7 +9293,7 @@ point game::place_player( const tripoint &dest_loc )
             };
 
             for( auto &elem : adjacentDir ) {
-                forage( u.pos() + direction_XY( elem ) );
+                forage( u.pos() + displace_XY( elem ) );
             }
         }
 
@@ -9328,7 +9327,7 @@ point game::place_player( const tripoint &dest_loc )
 
             if( pulp_butcher == "pulp_adjacent" ) {
                 for( auto &elem : adjacentDir ) {
-                    pulp( u.pos() + direction_XY( elem ) );
+                    pulp( u.pos() + displace_XY( elem ) );
                 }
             } else {
                 pulp( u.pos() );
