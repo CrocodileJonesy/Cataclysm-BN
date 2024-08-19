@@ -36,6 +36,7 @@
 #include "type_id.h"
 #include "units.h"
 
+enum class spawn_disposition;
 struct scent_block;
 template <typename T> class string_id;
 
@@ -46,7 +47,6 @@ class window;
 class active_tile_data;
 class Character;
 class Creature;
-class basecamp;
 class character_id;
 class computer;
 class field;
@@ -387,7 +387,7 @@ class map
 
     public:
         // Constructors & Initialization
-        map( int mapsize = MAPSIZE, bool zlev = false );
+        map( int mapsize = MAPSIZE, bool zlev = true );
         explicit map( bool zlev ) : map( MAPSIZE, zlev ) { }
         virtual ~map();
 
@@ -1088,7 +1088,7 @@ class map
         /** Keeps bashing a square until there is no more furniture */
         void destroy_furn( const tripoint &p, bool silent = false );
         void crush( const tripoint &p );
-        void shoot( const tripoint &p, projectile &proj, bool hit_items );
+        void shoot( const tripoint &origin, const tripoint &p, projectile &proj, bool hit_items );
         /** Checks if a square should collapse, returns the X for the one_in(X) collapse chance */
         int collapse_check( const tripoint &p );
         /** Causes a collapse at p, such as from destroying a wall */
@@ -1259,9 +1259,16 @@ class map
             return spawn_an_item( tripoint( p, abs_sub.z ), std::move( new_item ), charges, damlevel );
         }
 
+
+        /**
+         * Remove an item from active item processing queue as necessary
+         */
+        void make_inactive( item &loc );
+
         /**
          * Update an item's active status, for example when adding
          * hot or perishable liquid to a container.
+         * Should be called as part of activate()
          */
         void make_active( item &loc );
 
@@ -1289,8 +1296,7 @@ class map
                                      int &quantity, const std::function<bool( const item & )> &filter = return_true<item> );
         std::vector<detached_ptr<item>> use_charges( const tripoint &origin, int range,
                                      const itype_id &type,
-                                     int &quantity, const std::function<bool( const item & )> &filter = return_true<item>,
-                                     basecamp *bcp = nullptr );
+                                     int &quantity, const std::function<bool( const item & )> &filter = return_true<item> );
         /*@}*/
 
         /**
@@ -1484,11 +1490,6 @@ class map
         computer *computer_at( const tripoint &p );
         computer *add_computer( const tripoint &p, const std::string &name, int security );
 
-        // Camps
-        void add_camp( const tripoint_abs_omt &omt_pos, const std::string &name );
-        void remove_submap_camp( const tripoint & );
-        basecamp hoist_submap_camp( const tripoint &p );
-        bool point_within_camp( const tripoint &point_check ) const;
         // Graffiti
         bool has_graffiti_at( const tripoint &p ) const;
         const std::string &graffiti_at( const tripoint &p ) const;
@@ -1548,8 +1549,8 @@ class map
                            point p1, point p2, float density,
                            bool individual = false, bool friendly = false, const std::string &name = "NONE",
                            int mission_id = -1 );
-        void place_gas_pump( point p, int charges, const std::string &fuel_type );
-        void place_gas_pump( point p, int charges );
+        void place_gas_pump( const point &p, int charges, const itype_id &fuel_type );
+        void place_gas_pump( const point &p, int charges );
         // 6 liters at 250 ml per charge
         void place_toilet( point p, int charges = 6 * 4 );
         void place_vending( point p, const item_group_id &type, bool reinforced = false );
@@ -1559,6 +1560,9 @@ class map
         void apply_faction_ownership( point p1, point p2, const faction_id &id );
         void add_spawn( const mtype_id &type, int count, const tripoint &p,
                         bool friendly = false, int faction_id = -1, int mission_id = -1,
+                        const std::string &name = "NONE" ) const;
+        void add_spawn( const mtype_id &type, int count, const tripoint &p,
+                        spawn_disposition disposition, int faction_id = -1, int mission_id = -1,
                         const std::string &name = "NONE" ) const;
         void do_vehicle_caching( int z );
         // Note: in 3D mode, will actually build caches on ALL z-levels
@@ -1670,6 +1674,13 @@ class map
         void spawn_monsters( bool ignore_sight );
 
         /**
+        * Checks to see if the corpse that is rotting away generates items when it does.
+        * @param it item that is spawning creatures
+        * @param pnt The point on this map where the item is and where bones/etc will be
+        */
+        void handle_decayed_corpse( const item &it, const tripoint &pnt );
+
+        /**
         * Checks to see if the item that is rotting away generates a creature when it does.
         * @param item item that is spawning creatures
         * @param p The point on this map where the item is and creature will be
@@ -1757,13 +1768,12 @@ class map
         void copy_grid( const tripoint &to, const tripoint &from );
         void draw_map( mapgendata &dat );
 
-        void draw_office_tower( mapgendata &dat );
+        void draw_office_tower( const mapgendata &dat );
         void draw_lab( mapgendata &dat );
-        void draw_temple( mapgendata &dat );
+        void draw_temple( const mapgendata &dat );
         void draw_mine( mapgendata &dat );
         void draw_slimepit( mapgendata &dat );
-        void draw_triffid( mapgendata &dat );
-        void draw_connections( mapgendata &dat );
+        void draw_connections( const mapgendata &dat );
 
         // Builds a transparency cache and returns true if the cache was invalidated.
         // Used to determine if seen cache should be rebuilt.

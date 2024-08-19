@@ -20,7 +20,6 @@
 #include "string_id.h"
 #include "type_id.h"
 
-class basecamp;
 class character_id;
 enum class cube_direction : int;
 class map_extra;
@@ -31,6 +30,7 @@ class overmap_special;
 class overmap_special_batch;
 class throbber_popup;
 class vehicle;
+struct mapgen_arguments;
 struct mongroup;
 struct om_vehicle;
 struct radio_tower;
@@ -87,22 +87,6 @@ struct city_reference {
 
     operator bool() const {
         return city != nullptr;
-    }
-
-    int get_distance_from_bounds() const;
-};
-
-struct camp_reference {
-    static const camp_reference invalid;
-    /** The camp itself, points into @ref overmap::camps */
-    basecamp *camp;
-    /** The global absolute position of the camp (in submap coordinates!) */
-    tripoint_abs_sm abs_sm_pos;
-    /** Distance to center of the search */
-    int distance;
-
-    operator bool() const {
-        return camp != nullptr;
     }
 
     int get_distance_from_bounds() const;
@@ -191,6 +175,7 @@ class overmapbuffer
         const oter_id &ter_existing( const tripoint_abs_omt &p );
         void ter_set( const tripoint_abs_omt &p, const oter_id &id );
         std::string *join_used_at( const std::pair<tripoint_abs_omt, cube_direction> & );
+        std::optional<mapgen_arguments> *mapgen_args( const tripoint_abs_omt & );
         /**
          * Uses global overmap terrain coordinates.
          */
@@ -211,6 +196,8 @@ class overmapbuffer
         void delete_extra( const tripoint_abs_omt &p );
         bool is_explored( const tripoint_abs_omt &p );
         void toggle_explored( const tripoint_abs_omt &p );
+        bool is_path( const tripoint_abs_omt &p );
+        void toggle_path( const tripoint_abs_omt &p );
         bool seen( const tripoint_abs_omt &p );
         void set_seen( const tripoint_abs_omt &p, bool seen = true );
         bool has_vehicle( const tripoint_abs_omt &p );
@@ -259,19 +246,10 @@ class overmapbuffer
          */
         void add_vehicle( vehicle *veh );
         /**
-         * Remove basecamp
-         */
-        void remove_camp( const basecamp &camp );
-        /**
          * Remove the vehicle from being tracked in the overmap.
          */
         void remove_vehicle( const vehicle *veh );
-        /**
-         * Add Basecamp to overmapbuffer
-         */
-        void add_camp( const basecamp &camp );
 
-        std::optional<basecamp *> find_camp( const point_abs_omt &p );
         /**
          * Get all npcs in a area with given radius around given central point.
          * Only npcs on the given z-level are considered.
@@ -477,7 +455,6 @@ class overmapbuffer
          * All entries in the returned vector are valid (have a valid tower pointer).
          */
         std::vector<radio_tower_reference> find_all_radio_stations();
-        std::vector<camp_reference> get_camps_near( const tripoint_abs_sm &location, int radius );
         /**
          * Find all cities within the specified @ref radius.
          * Result is sorted by proximity to @ref location in ascending order.
@@ -516,11 +493,12 @@ class overmapbuffer
          * @param special_id The id of overmap special to place.
          * @param center Used in conjunction with radius to search the specified and adjacent overmaps for
          * a valid placement location. Absolute overmap terrain coordinates.
-         * @param radius Used in conjunction with center. Absolute overmap terrain units.
+         * @param min_radius Used in conjunction with center. Absolute overmap terrain units.
+         * @param max_radius Used in conjunction with center. Absolute overmap terrain units.
          * @returns True if the special was placed, else false.
          */
         bool place_special( const overmap_special_id &special_id, const tripoint_abs_omt &center,
-                            int radius );
+                            int min_radius, int max_radius );
 
     private:
         /**
@@ -563,6 +541,7 @@ class overmapbuffer
         bool check_ot( const std::string &otype, ot_match_type match_type,
                        const tripoint_abs_omt &p );
         bool check_overmap_special_type( const overmap_special_id &id, const tripoint_abs_omt &loc );
+        std::optional<overmap_special_id> overmap_special_at( const tripoint_abs_omt & );
 
         /**
         * These versions of the check_* methods will only check existing overmaps, and

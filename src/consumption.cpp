@@ -75,6 +75,8 @@ static const efftype_id effect_visuals( "visuals" );
 
 static const itype_id itype_syringe( "syringe" );
 
+static const mutation_category_id mutation_category_URSINE( "URSINE" );
+
 static const trait_id trait_ACIDBLOOD( "ACIDBLOOD" );
 static const trait_id trait_AMORPHOUS( "AMORPHOUS" );
 static const trait_id trait_ANTIFRUIT( "ANTIFRUIT" );
@@ -167,14 +169,14 @@ struct prepared_item_consumption {
             case item_consumption_t::tool: {
                 comp_selection<tool_comp> selection = comp_selection<tool_comp>();
                 selection.comp = tool_comp( it.typeId(), it.type->charges_to_use() );
-                selection.use_from = use_from_both;
+                selection.use_from = usage_from::both;
                 p.consume_tools( selection, it.type->charges_to_use() );
                 return true;
             }
             case item_consumption_t::component: {
                 comp_selection<item_comp> selection = comp_selection<item_comp>();
                 selection.comp = item_comp( it.typeId(), 1 );
-                selection.use_from = use_from_both;
+                selection.use_from = usage_from::both;
                 return !p.consume_items( selection, 1, is_crafting_component ).empty();
             }
         }
@@ -336,16 +338,16 @@ std::pair<nutrients, nutrients> Character::compute_nutrient_range(
         return {};
     }
 
+    const recipe &rec = *recipe_i;
+    int charges = comest.count();
     // if item has components, will derive calories from that instead.
-    if( comest.has_flag( flag_NUTRIENT_OVERRIDE ) ) {
+    if( comest.has_flag( flag_NUTRIENT_OVERRIDE ) || !g->u.can_make( &rec, charges ) ) {
         nutrients result = compute_default_effective_nutrients( comest, *this );
         return { result, result };
     }
 
     nutrients tally_min;
     nutrients tally_max;
-
-    const recipe &rec = *recipe_i;
 
     cata::flat_set<flag_id> our_extra_flags = extra_flags;
 
@@ -362,17 +364,19 @@ std::pair<nutrients, nutrients> Character::compute_nutrient_range(
         nutrients this_max;
         bool first = true;
         for( const item_comp &component_option : component_options ) {
-            std::pair<nutrients, nutrients> component_option_range =
-                compute_nutrient_range( component_option.type, our_extra_flags );
-            component_option_range.first *= component_option.count;
-            component_option_range.second *= component_option.count;
+            if( component_option.has( g->u.crafting_inventory(), rec.get_component_filter(), charges ) ) {
+                std::pair<nutrients, nutrients> component_option_range =
+                    compute_nutrient_range( component_option.type, our_extra_flags );
+                component_option_range.first *= component_option.count;
+                component_option_range.second *= component_option.count;
 
-            if( first ) {
-                std::tie( this_min, this_max ) = component_option_range;
-                first = false;
-            } else {
-                this_min.min_in_place( component_option_range.first );
-                this_max.max_in_place( component_option_range.second );
+                if( first ) {
+                    std::tie( this_min, this_max ) = component_option_range;
+                    first = false;
+                } else {
+                    this_min.min_in_place( component_option_range.first );
+                    this_max.max_in_place( component_option_range.second );
+                }
             }
         }
         tally_min += this_min;
@@ -386,7 +390,6 @@ std::pair<nutrients, nutrients> Character::compute_nutrient_range(
         tally_max -= byproduct_nutr;
     }
 
-    int charges = comest.count();
     return { tally_min / charges, tally_max / charges };
 }
 
@@ -575,10 +578,10 @@ float Character::metabolic_rate_base() const
     static const std::string hunger_rate_string( "PLAYER_HUNGER_RATE" );
     static const std::string metabolism_modifier( "metabolism_modifier" );
 
-    float hunger_rate = get_option< float >( hunger_rate_string );
-    float mut_bonus = 1.0f + mutation_value( metabolism_modifier );
-    float with_mut = hunger_rate * mut_bonus;
-    float ench_bonus = bonus_from_enchantments( with_mut, enchant_vals::mod::METABOLISM );
+    const float hunger_rate = get_option< float >( hunger_rate_string );
+    const float mut_bonus = 1.0f + mutation_value( metabolism_modifier );
+    const float with_mut = hunger_rate * mut_bonus;
+    const float ench_bonus = bonus_from_enchantments( with_mut, enchant_vals::mod::METABOLISM );
 
     return std::max( 0.0f, with_mut + ench_bonus );
 }
@@ -817,10 +820,7 @@ bool Character::eat( item &food, bool force )
 
     int charges_used = 0;
     if( food.type->has_use() ) {
-        if( !food.type->can_use( "DOGFOOD" ) &&
-            !food.type->can_use( "CATFOOD" ) &&
-            !food.type->can_use( "BIRDFOOD" ) &&
-            !food.type->can_use( "CATTLEFODDER" ) ) {
+        if( !food.type->can_use( "PETFOOD" ) ) {
             charges_used = food.type->invoke( *this->as_player(), food, pos() );
             if( charges_used <= 0 ) {
                 return false;
@@ -1043,7 +1043,7 @@ const morale_type MORALE_FOOD_VERY_COLD( "morale_food_very_cold" );
 
 void Character::modify_morale( item &food, int nutr )
 {
-    time_duration morale_time = 2_hours;
+    time_duration morale_time = 12_hours;
 
     const int nutr_morale = clamped_nutr( nutr );
     const auto food_morale = [&]( const morale_type & type ) -> void {
@@ -1151,11 +1151,11 @@ void Character::modify_morale( item &food, int nutr )
     }
     if( food.has_flag( flag_URSINE_HONEY ) && ( !crossed_threshold() ||
             has_trait( trait_THRESH_URSINE ) ) &&
-        mutation_category_level["URSINE"] > 40 ) {
+        mutation_category_level[mutation_category_URSINE] > 40 ) {
         // Need at least 5 bear mutations for effect to show, to filter out mutations in common with other categories
         int honey_fun = has_trait( trait_THRESH_URSINE ) ?
-                        std::min( mutation_category_level["URSINE"] / 8, 20 ) :
-                        mutation_category_level["URSINE"] / 12;
+                        std::min( mutation_category_level[mutation_category_URSINE] / 8, 20 ) :
+                        mutation_category_level[mutation_category_URSINE] / 12;
         if( honey_fun < 10 ) {
             add_msg_if_player( m_good, _( "You find the sweet taste of honey surprisingly palatable." ) );
         } else {
@@ -1480,7 +1480,8 @@ bool query_consume_ownership( item &target, avatar &you )
     if( you.get_value( "THIEF_MODE_KEEP" ) != "YES" ) {
         you.set_value( "THIEF_MODE", "THIEF_ASK" );
     }
-    if( !target.is_owned_by( you, true ) ) {
+    // We don't care about the opinions of NPCs that will already shoot us on sight, steal away!
+    if( !target.is_owned_by( you, true ) && target.get_owner()->likes_u >= -10 ) {
         bool choice = true;
         if( you.get_value( "THIEF_MODE" ) == "THIEF_ASK" ) {
             choice = pickup::query_thief();

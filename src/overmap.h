@@ -23,6 +23,7 @@
 #include "enums.h"
 #include "enum_conversions.h"
 #include "game_constants.h"
+#include "mapgendata.h"
 #include "memory_fast.h"
 #include "mongroup.h"
 #include "omdata.h"
@@ -35,7 +36,6 @@
 class JsonIn;
 class JsonObject;
 class JsonOut;
-class basecamp;
 class character_id;
 class map_extra;
 class monster;
@@ -109,46 +109,47 @@ struct map_layer {
     oter_id terrain[OMAPX][OMAPY];
     bool visible[OMAPX][OMAPY];
     bool explored[OMAPX][OMAPY];
+    bool path[OMAPX][OMAPY];
     std::vector<om_note> notes;
     std::vector<om_map_extra> extras;
 };
 
 static const std::map<std::string, oter_flags> oter_flags_map = {
-    { "KNOWN_DOWN", known_down },
-    { "KNOWN_UP", known_up },
-    { "RIVER", river_tile },
-    { "SIDEWALK", has_sidewalk },
-    { "NO_ROTATE", no_rotate },
-    { "IGNORE_ROTATION_FOR_ADJACENCY", ignore_rotation_for_adjacency },
-    { "LINEAR", line_drawing },
-    { "SUBWAY", subway_connection },
-    { "LAKE", lake },
-    { "LAKE_SHORE", lake_shore },
-    { "GENERIC_LOOT", generic_loot },
-    { "RISK_HIGH", risk_high },
-    { "RISK_LOW", risk_low },
-    { "SOURCE_AMMO", source_ammo },
-    { "SOURCE_ANIMALS", source_animals },
-    { "SOURCE_BOOKS", source_books },
-    { "SOURCE_CHEMISTRY", source_chemistry },
-    { "SOURCE_CLOTHING", source_clothing },
-    { "SOURCE_CONSTRUCTION", source_construction },
-    { "SOURCE_COOKING", source_cooking },
-    { "SOURCE_DRINK", source_drink },
-    { "SOURCE_ELECTRONICS", source_electronics },
-    { "SOURCE_FABRICATION", source_fabrication },
-    { "SOURCE_FARMING", source_farming },
-    { "SOURCE_FOOD", source_food },
-    { "SOURCE_FORAGE", source_forage },
-    { "SOURCE_FUEL", source_fuel },
-    { "SOURCE_GUN", source_gun },
-    { "SOURCE_LUXURY", source_luxury },
-    { "SOURCE_MEDICINE", source_medicine },
-    { "SOURCE_PEOPLE", source_people },
-    { "SOURCE_SAFETY", source_safety },
-    { "SOURCE_TAILORING", source_tailoring },
-    { "SOURCE_VEHICLES", source_vehicles },
-    { "SOURCE_WEAPON", source_weapon }
+    { "KNOWN_DOWN", oter_flags::known_down },
+    { "KNOWN_UP", oter_flags::known_up },
+    { "RIVER", oter_flags::river_tile },
+    { "SIDEWALK", oter_flags::has_sidewalk },
+    { "NO_ROTATE", oter_flags::no_rotate },
+    { "IGNORE_ROTATION_FOR_ADJACENCY", oter_flags::ignore_rotation_for_adjacency },
+    { "LINEAR", oter_flags::line_drawing },
+    { "SUBWAY", oter_flags::subway_connection },
+    { "LAKE", oter_flags::lake },
+    { "LAKE_SHORE", oter_flags::lake_shore },
+    { "GENERIC_LOOT", oter_flags::generic_loot },
+    { "RISK_HIGH", oter_flags::risk_high },
+    { "RISK_LOW", oter_flags::risk_low },
+    { "SOURCE_AMMO", oter_flags::source_ammo },
+    { "SOURCE_ANIMALS", oter_flags::source_animals },
+    { "SOURCE_BOOKS", oter_flags::source_books },
+    { "SOURCE_CHEMISTRY", oter_flags::source_chemistry },
+    { "SOURCE_CLOTHING", oter_flags::source_clothing },
+    { "SOURCE_CONSTRUCTION", oter_flags::source_construction },
+    { "SOURCE_COOKING", oter_flags::source_cooking },
+    { "SOURCE_DRINK", oter_flags::source_drink },
+    { "SOURCE_ELECTRONICS", oter_flags::source_electronics },
+    { "SOURCE_FABRICATION", oter_flags::source_fabrication },
+    { "SOURCE_FARMING", oter_flags::source_farming },
+    { "SOURCE_FOOD", oter_flags::source_food },
+    { "SOURCE_FORAGE", oter_flags::source_forage },
+    { "SOURCE_FUEL", oter_flags::source_fuel },
+    { "SOURCE_GUN", oter_flags::source_gun },
+    { "SOURCE_LUXURY", oter_flags::source_luxury },
+    { "SOURCE_MEDICINE", oter_flags::source_medicine },
+    { "SOURCE_PEOPLE", oter_flags::source_people },
+    { "SOURCE_SAFETY", oter_flags::source_safety },
+    { "SOURCE_TAILORING", oter_flags::source_tailoring },
+    { "SOURCE_VEHICLES", oter_flags::source_vehicles },
+    { "SOURCE_WEAPON", oter_flags::source_weapon }
 };
 
 template<typename Tripoint>
@@ -231,10 +232,13 @@ class overmap
         void ter_set( const tripoint_om_omt &p, const oter_id &id );
         const oter_id &ter( const tripoint_om_omt &p ) const;
         std::string *join_used_at( const om_pos_dir & );
+        std::optional<mapgen_arguments> *mapgen_args( const tripoint_om_omt & );
         bool &seen( const tripoint_om_omt &p );
         bool seen( const tripoint_om_omt &p ) const;
         bool &explored( const tripoint_om_omt &p );
         bool is_explored( const tripoint_om_omt &p ) const;
+        bool &path( const tripoint_om_omt &p );
+        bool is_path( const tripoint_om_omt &p ) const;
 
         bool has_note( const tripoint_om_omt &p ) const;
         std::optional<int> has_note_with_danger_radius( const tripoint_om_omt &p ) const;
@@ -326,11 +330,9 @@ class overmap
         // TODO: make private
         std::vector<radio_tower> radios;
         std::map<int, om_vehicle> vehicles;
-        std::vector<basecamp> camps;
         std::vector<city> cities;
         std::map<overmap_connection_id, std::vector<tripoint_om_omt>> connections_out;
         std::optional<overmap_connection_cache> connection_cache;
-        std::optional<basecamp *> find_camp( const point_abs_omt &p );
         /// Adds the npc to the contained list of npcs ( @ref npcs ).
         void insert_npc( const shared_ptr_fast<npc> &who );
         /// Removes the npc and returns it ( or returns nullptr if not found ).
@@ -370,6 +372,11 @@ class overmap
         // Records the joins that were chosen during placement of a mutable
         // special, so that it can be queried later by mapgen
         std::unordered_map<om_pos_dir, std::string> joins_used;
+        // Records mapgen parameters required at the overmap special level
+        // These are lazily evaluated; empty optional means that they have yet
+        // to be evaluated.
+        std::vector<std::optional<mapgen_arguments>> mapgen_arg_storage;
+        std::unordered_map<tripoint_om_omt, int> mapgen_args_index;
 
         oter_id get_default_terrain( int z ) const;
 
@@ -408,9 +415,6 @@ class overmap
         void process_mongroups();
         void move_hordes();
 
-        static bool is_obsolete_terrain( const std::string &ter );
-        void convert_terrain( const std::unordered_map<tripoint_om_omt, std::string> &needs_conversion );
-
         // Overall terrain
         void place_river( point_om_omt pa, point_om_omt pb );
         void place_forests();
@@ -436,7 +440,6 @@ class overmap
         void build_city_street( const overmap_connection &connection, const point_om_omt &p, int cs,
                                 om_direction::type dir, const city &town, std::vector<tripoint_om_omt> &sewers,
                                 int block_width = 2 );
-        void build_mine( const tripoint_om_omt &origin, int s );
 
         // Connection laying
         pf::directed_path<point_om_omt> lay_out_connection(
@@ -448,10 +451,10 @@ class overmap
     public:
         bool build_connection(
             const overmap_connection &connection, const pf::directed_path<point_om_omt> &path, int z,
-            const om_direction::type &initial_dir = om_direction::type::invalid );
+            cube_direction initial_dir = cube_direction::last );
         bool build_connection( const point_om_omt &source, const point_om_omt &dest, int z,
                                const overmap_connection &connection, bool must_be_unexplored,
-                               const om_direction::type &initial_dir = om_direction::type::invalid );
+                               cube_direction initial_dir = cube_direction::last );
         void connect_closest_points( const std::vector<point_om_omt> &points, int z,
                                      const overmap_connection &connection );
         // Polishing
@@ -459,6 +462,7 @@ class overmap
                        const tripoint_om_omt &p ) const;
         bool check_overmap_special_type( const overmap_special_id &id,
                                          const tripoint_om_omt &location ) const;
+        std::optional<overmap_special_id> overmap_special_at( const tripoint_om_omt &p ) const;
 
         void polish_rivers( const overmap *north, const overmap *east, const overmap *south,
                             const overmap *west );
@@ -504,8 +508,10 @@ class overmap
         void load_legacy_monstergroups( JsonIn &jsin );
         void save_monster_groups( JsonOut &jo ) const;
     public:
-        static void load_obsolete_terrains( const JsonObject &jo );
-        static void reset_obsolete_terrains();
+        static void load_oter_id_migration( const JsonObject &jo );
+        static void reset_oter_id_migrations();
+        static bool is_oter_id_obsolete( const std::string &oterid );
+        void migrate_oter_ids( const std::unordered_map<tripoint_om_omt, std::string> &points );
 };
 
 bool is_river( const oter_id &ter );

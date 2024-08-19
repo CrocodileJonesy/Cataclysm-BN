@@ -49,6 +49,7 @@
 #include "vehicle.h"
 #include "vehicle_part.h"
 #include "vpart_position.h"
+#include "profile.h"
 
 static const ammo_effect_str_id ammo_effect_APPLY_SAP( "APPLY_SAP" );
 static const ammo_effect_str_id ammo_effect_BEANBAG( "BEANBAG" );
@@ -59,11 +60,11 @@ static const ammo_effect_str_id ammo_effect_INCENDIARY( "INCENDIARY" );
 static const ammo_effect_str_id ammo_effect_LARGE_BEANBAG( "LARGE_BEANBAG" );
 static const ammo_effect_str_id ammo_effect_magic( "magic" );
 static const ammo_effect_str_id ammo_effect_NO_CRIT( "NO_CRIT" );
+static const ammo_effect_str_id ammo_effect_NO_DAMAGE( "NO_DAMAGE" );
 static const ammo_effect_str_id ammo_effect_NO_DAMAGE_SCALING( "NO_DAMAGE_SCALING" );
 static const ammo_effect_str_id ammo_effect_NOGIB( "NOGIB" );
 static const ammo_effect_str_id ammo_effect_PARALYZEPOISON( "PARALYZEPOISON" );
 static const ammo_effect_str_id ammo_effect_TANGLE( "TANGLE" );
-
 
 static const efftype_id effect_blind( "blind" );
 static const efftype_id effect_bounced( "bounced" );
@@ -81,9 +82,12 @@ static const efftype_id effect_stunned( "stunned" );
 static const efftype_id effect_tied( "tied" );
 static const efftype_id effect_zapped( "zapped" );
 
-const std::map<std::string, m_size> Creature::size_map = {
-    {"TINY", MS_TINY}, {"SMALL", MS_SMALL}, {"MEDIUM", MS_MEDIUM},
-    {"LARGE", MS_LARGE}, {"HUGE", MS_HUGE}
+const std::map<std::string, creature_size> Creature::size_map = {
+    {"TINY",   creature_size::tiny},
+    {"SMALL",  creature_size::small},
+    {"MEDIUM", creature_size::medium},
+    {"LARGE",  creature_size::large},
+    {"HUGE",   creature_size::huge}
 };
 
 const std::set<material_id> Creature::cmat_flesh{
@@ -255,6 +259,8 @@ bool Creature::is_dangerous_field( const field_entry &entry ) const
 
 bool Creature::sees( const Creature &critter ) const
 {
+    ZoneScoped;
+
     // Creatures always see themselves (simplifies drawing).
     if( &critter == this ) {
         return true;
@@ -302,18 +308,18 @@ bool Creature::sees( const Creature &critter ) const
             }
             float size_modifier = 1.0;
             switch( ch->get_size() ) {
-                case MS_TINY:
+                case creature_size::tiny:
                     size_modifier = 2.0;
                     break;
-                case MS_SMALL:
+                case creature_size::small:
                     size_modifier = 1.4;
                     break;
-                case MS_MEDIUM:
+                case creature_size::medium:
                     break;
-                case MS_LARGE:
+                case creature_size::large:
                     size_modifier = 0.6;
                     break;
-                case MS_HUGE:
+                case creature_size::huge:
                     size_modifier = 0.15;
                     break;
                 default:
@@ -429,7 +435,7 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
         }
         if( critter.is_npc() ) {
             // friendly to the player, not a target for us
-            return static_cast<const npc *>( &critter )->get_attitude() == NPCATT_KILL;
+            return static_cast<const npc *>( &critter )->guaranteed_hostile();
         }
         // TODO: what about g->u?
         return false;
@@ -507,7 +513,7 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
             // Helps avoid (possibly expensive) attitude calculation
             continue;
         }
-        if( m->attitude_to( u ) == A_HOSTILE ) {
+        if( m->attitude_to( u ) == Attitude::A_HOSTILE ) {
             target_rating = ( mon_rating + hostile_adj ) / dist;
             if( maybe_boo ) {
                 boo_hoo++;
@@ -535,15 +541,15 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
 int Creature::size_melee_penalty() const
 {
     switch( get_size() ) {
-        case MS_TINY:
+        case creature_size::tiny:
             return 30;
-        case MS_SMALL:
+        case creature_size::small:
             return 15;
-        case MS_MEDIUM:
+        case creature_size::medium:
             return 0;
-        case MS_LARGE:
+        case creature_size::large:
             return -10;
-        case MS_HUGE:
+        case creature_size::huge:
             return -20;
         default:
             break;
@@ -720,6 +726,31 @@ dealt_damage_instance hit_with_aoe( Creature &target, Creature *source, const da
 
 } // namespace ranged
 
+namespace
+{
+
+auto get_stun_srength( const projectile &proj, creature_size size ) -> int
+{
+    const int stun_strength = proj.has_effect( ammo_effect_BEANBAG ) ? 4
+                              : proj.has_effect( ammo_effect_LARGE_BEANBAG ) ? 16
+                              : 0;
+
+    switch( size ) {
+        case creature_size::tiny:
+            return stun_strength * 4;
+        case creature_size::small:
+            return stun_strength * 2;
+        case creature_size::medium:
+        default:
+            return stun_strength;
+        case creature_size::large:
+            return stun_strength / 2;
+        case creature_size::huge:
+            return stun_strength / 4;
+    }
+}
+} // namespace
+
 /**
  * Attempts to harm a creature with a projectile.
  *
@@ -853,6 +884,11 @@ void Creature::deal_projectile_attack( Creature *source, dealt_projectile_attack
             impact.mult_damage( 1.0f / dmg_ratio );
         }
     }
+
+    if( proj.has_effect( ammo_effect_NO_DAMAGE ) ) {
+        impact.mult_damage( 0.0f );
+    }
+
     // If we have a shield, it might passively block ranged impacts
     block_ranged_hit( source, bp_hit, impact );
     dealt_dam = deal_damage( source, bp_hit, impact );
@@ -894,44 +930,31 @@ void Creature::deal_projectile_attack( Creature *source, dealt_projectile_attack
         }
     }
 
-    if( bp_hit == bodypart_str_id( "head" ) && proj.has_effect( ammo_effect_BLINDS_EYES ) ) {
+    // at least `dealt_dam` doesn't get mutated after this point
+    const int total_damage = dealt_dam.total_damage();
+    const int env_resist = get_env_resist( bp_hit );
+
+    const int blind_strength = bp_hit == bodypart_str_id( "head" )
+                               && proj.has_effect( ammo_effect_BLINDS_EYES ) ? total_damage - env_resist : 0;
+    if( blind_strength > 0 ) {
         // TODO: Change this to require bp_eyes
         add_env_effect( effect_blind, bp_eyes, 5, rng( 3_turns, 10_turns ) );
     }
 
-    if( proj.has_effect( ammo_effect_APPLY_SAP ) ) {
-        add_effect( effect_sap, 1_turns * dealt_dam.total_damage() );
+    const int sap_strength = proj.has_effect( ammo_effect_APPLY_SAP ) ? total_damage - env_resist : 0;
+    if( sap_strength > 0 ) {
+        add_effect( effect_sap, 1_turns * sap_strength );
     }
-    if( proj.has_effect( ammo_effect_PARALYZEPOISON ) && dealt_dam.total_damage() > 0 ) {
+
+    const int paralysis_strength = proj.has_effect( ammo_effect_PARALYZEPOISON )
+                                   ? total_damage - env_resist : 0;
+    if( paralysis_strength > 0 ) {
         add_msg_if_player( m_bad, _( "You feel poison coursing through your body!" ) );
         add_effect( effect_paralyzepoison, 5_minutes );
     }
 
-    int stun_strength = 0;
-    if( proj.has_effect( ammo_effect_BEANBAG ) ) {
-        stun_strength = 4;
-    }
-    if( proj.has_effect( ammo_effect_LARGE_BEANBAG ) ) {
-        stun_strength = 16;
-    }
+    const int stun_strength = get_stun_srength( proj, get_size() ) - get_env_resist( bp_hit );
     if( stun_strength > 0 ) {
-        switch( get_size() ) {
-            case MS_TINY:
-                stun_strength *= 4;
-                break;
-            case MS_SMALL:
-                stun_strength *= 2;
-                break;
-            case MS_MEDIUM:
-            default:
-                break;
-            case MS_LARGE:
-                stun_strength /= 2;
-                break;
-            case MS_HUGE:
-                stun_strength /= 4;
-                break;
-        }
         add_effect( effect_stunned, 1_turns * rng( stun_strength / 2, stun_strength ) );
     }
 
@@ -987,7 +1010,7 @@ void Creature::deal_damage_handle_type( const damage_unit &du, bodypart_id bp, i
     }
 
     // Apply damage multiplier from skill, critical hits or grazes after all other modifications.
-    const int adjusted_damage = du.amount * du.damage_multiplier;
+    int adjusted_damage = du.amount * du.damage_multiplier;
     if( adjusted_damage <= 0 ) {
         return;
     }
@@ -998,6 +1021,10 @@ void Creature::deal_damage_handle_type( const damage_unit &du, bodypart_id bp, i
         case DT_BASH:
             // Bashing damage is less painful
             div = 5.0f;
+            // Monster only. Having PLASTIC flag cuts damage from bashing by 50%, 66% or 75%
+            if( has_flag( MF_PLASTIC ) ) {
+                adjusted_damage /= rng( 2, 4 ); // lessened effect
+            }
             break;
 
         case DT_HEAT:
@@ -1349,6 +1376,17 @@ int Creature::get_effect_int( const efftype_id &eff_id, body_part bp ) const
 
     return 0;
 }
+
+struct removed_effect {
+    public:
+        removed_effect( efftype_id type, bodypart_str_id bp, bool is_decayed ) :
+            type( type ), bp( bp ), is_decayed( is_decayed )
+        {}
+        efftype_id type;
+        bodypart_str_id bp;
+        bool is_decayed;
+};
+
 void Creature::process_effects()
 {
     process_effects_internal();
@@ -1356,24 +1394,26 @@ void Creature::process_effects()
     // id's and body_part's of all effects to be removed. If we ever get player or
     // monster specific removals these will need to be moved down to that level and then
     // passed in to this function.
-    std::vector<std::pair<efftype_id, bodypart_str_id>> to_remove;
+    std::vector<removed_effect> to_remove;
+
+    std::vector<effect> to_add;
 
     // Decay/removal of effects
     for( auto &elem : *effects ) {
         for( auto &_it : elem.second ) {
             if( _it.second.is_removed() ) {
-                to_remove.emplace_back( elem.first, _it.first );
+                to_remove.emplace_back( elem.first, _it.first, false );
                 continue;
             }
             // Add any effects that others remove to the removal list
             for( const efftype_id &removed_effect : _it.second.get_removes_effects() ) {
-                to_remove.emplace_back( removed_effect, bodypart_str_id::NULL_ID() );
+                to_remove.emplace_back( removed_effect, bodypart_str_id::NULL_ID(), false );
             }
             effect &e = _it.second;
             const int prev_int = e.get_intensity();
             // Run decay effects, marking effects for removal as necessary.
             if( e.decay( calendar::turn, is_player() ) ) {
-                to_remove.emplace_back( elem.first, _it.first );
+                to_remove.emplace_back( elem.first, _it.first, true );
             }
 
             if( e.get_intensity() != prev_int && e.get_duration() > 0_turns ) {
@@ -1383,20 +1423,46 @@ void Creature::process_effects()
     }
 
     // Run the on-remove effects
-    for( const std::pair<efftype_id, bodypart_str_id> &r : to_remove ) {
-        remove_effect( r.first, r.second );
-    }
-    // Actually remove effects. This should be the last thing done in process_effects().
-    for( const std::pair<efftype_id, bodypart_str_id> &r : to_remove ) {
-        if( !r.second ) {
-            effects->erase( r.first );
-        } else {
-            ( *effects )[r.first].erase( r.second );
-            // If there are no more effects of a given type remove the type map
-            if( ( *effects )[r.first].empty() ) {
-                effects->erase( r.first );
+    for( const removed_effect &r : to_remove ) {
+        const auto &add_after = r.type->get_effects_on_remove();
+        if( !add_after.empty() ) {
+            bool found = false;
+            // Copypasted from get_effect, but without check for `removed` flag
+            auto got_outer = effects->find( r.type );
+            if( got_outer != effects->end() ) {
+                auto got_inner = got_outer->second.find( convert_bp( r.bp->token ) );
+                if( got_inner != got_outer->second.end() ) {
+                    const auto &parent = got_inner->second;
+                    const auto &decay_effects = r.is_decayed ?
+                                                parent.create_decay_effects() :
+                                                parent.create_removal_effects();
+                    to_add.insert( to_add.end(), decay_effects.begin(), decay_effects.end() );
+                    found = true;
+                }
+            }
+
+            if( !found ) {
+                debugmsg( "Couldn't find effect to remove %s", r.type.str() );
             }
         }
+
+        remove_effect( r.type, r.bp );
+    }
+    // Actually remove effects. This should be the last thing done in process_effects().
+    for( const removed_effect &r : to_remove ) {
+        if( !r.bp ) {
+            effects->erase( r.type );
+        } else {
+            ( *effects )[r.type].erase( r.bp );
+            // If there are no more effects of a given type remove the type map
+            if( ( *effects )[r.type].empty() ) {
+                effects->erase( r.type );
+            }
+        }
+    }
+
+    for( const effect &eff : to_add ) {
+        add_effect( eff );
     }
 }
 
@@ -1894,19 +1960,19 @@ units::mass Creature::weight_capacity() const
 {
     units::mass base_carry = 13_kilogram;
     switch( get_size() ) {
-        case MS_TINY:
+        case creature_size::tiny:
             base_carry /= 4;
             break;
-        case MS_SMALL:
+        case creature_size::small:
             base_carry /= 2;
             break;
-        case MS_MEDIUM:
+        case creature_size::medium:
         default:
             break;
-        case MS_LARGE:
+        case creature_size::large:
             base_carry *= 2;
             break;
-        case MS_HUGE:
+        case creature_size::huge:
             base_carry *= 4;
             break;
     }
@@ -1965,11 +2031,11 @@ void Creature::check_dead_state()
 std::string Creature::attitude_raw_string( Attitude att )
 {
     switch( att ) {
-        case Creature::A_HOSTILE:
+        case Attitude::A_HOSTILE:
             return "hostile";
-        case Creature::A_NEUTRAL:
+        case Attitude::A_NEUTRAL:
             return "neutral";
-        case Creature::A_FRIENDLY:
+        case Attitude::A_FRIENDLY:
             return "friendly";
         default:
             return "other";
@@ -2096,19 +2162,19 @@ void Creature::describe_infrared( std::vector<std::string> &buf ) const
 {
     std::string size_str;
     switch( get_size() ) {
-        case m_size::MS_TINY:
+        case creature_size::tiny:
             size_str = pgettext( "infrared size", "tiny" );
             break;
-        case m_size::MS_SMALL:
+        case creature_size::small:
             size_str = pgettext( "infrared size", "small" );
             break;
-        case m_size::MS_MEDIUM:
+        case creature_size::medium:
             size_str = pgettext( "infrared size", "medium" );
             break;
-        case m_size::MS_LARGE:
+        case creature_size::large:
             size_str = pgettext( "infrared size", "large" );
             break;
-        case m_size::MS_HUGE:
+        case creature_size::huge:
             size_str = pgettext( "infrared size", "huge" );
             break;
         default:

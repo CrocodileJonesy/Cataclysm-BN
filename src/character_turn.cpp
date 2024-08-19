@@ -23,12 +23,14 @@
 #include "rng.h"
 #include "submap.h"
 #include "trap.h"
+#include "units_temperature.h"
 #include "veh_type.h"
 #include "vehicle.h"
 #include "vehicle_part.h"
 #include "vpart_position.h"
 #include "weather_gen.h"
 #include "weather.h"
+#include "profile.h"
 
 static const trait_id trait_ACIDBLOOD( "ACIDBLOOD" );
 static const trait_id trait_ARACHNID_ARMS_OK( "ARACHNID_ARMS_OK" );
@@ -137,7 +139,7 @@ void Character::recalc_speed_bonus()
         }
         const float temperature_speed_modifier = mutation_value( "temperature_speed_modifier" );
         if( temperature_speed_modifier != 0 ) {
-            const auto player_local_temp = get_weather().get_temperature( pos() );
+            const auto player_local_temp = units::to_fahrenheit( get_weather().get_temperature( pos() ) );
             if( has_trait( trait_COLDBLOOD4 ) || player_local_temp < 65 ) {
                 mod_speed_bonus( ( player_local_temp - 65 ) * temperature_speed_modifier );
             }
@@ -454,10 +456,10 @@ void Character::process_one_effect( effect &it, bool is_new )
             if( has_trait( trait_FAT ) ) {
                 mod *= 1.5;
             }
-            if( get_size() == MS_LARGE ) {
+            if( get_size() == creature_size::large ) {
                 mod *= 2;
             }
-            if( get_size() == MS_HUGE ) {
+            if( get_size() == creature_size::huge ) {
                 mod *= 3;
             }
         }
@@ -478,10 +480,10 @@ void Character::process_one_effect( effect &it, bool is_new )
             if( has_trait( trait_FAT ) ) {
                 mod *= 1.5;
             }
-            if( get_size() == MS_LARGE ) {
+            if( get_size() == creature_size::large ) {
                 mod *= 2;
             }
-            if( get_size() == MS_HUGE ) {
+            if( get_size() == creature_size::huge ) {
                 mod *= 3;
             }
         }
@@ -838,6 +840,8 @@ void Character::environmental_revert_effect()
 
 void Character::process_items()
 {
+    ZoneScoped;
+
     auto process_item = [this]( detached_ptr<item> &&ptr ) {
         return item::process( std::move( ptr ), as_player(), pos(), false );
     };
@@ -870,7 +874,7 @@ void Character::process_items()
         if( identifier == itype_UPS_off ) {
             ch_UPS += it.ammo_remaining();
         } else if( identifier == itype_adv_UPS_off ) {
-            ch_UPS += it.ammo_remaining() / 0.6;
+            ch_UPS += it.ammo_remaining() / 0.5;
         }
         if( it.has_flag( flag_USE_UPS ) && it.charges < it.type->maximum_charges() ) {
             active_held_items.push_back( index );
@@ -887,7 +891,7 @@ void Character::process_items()
         if( identifier == itype_UPS_off ) {
             ch_UPS += w->ammo_remaining();
         } else if( identifier == itype_adv_UPS_off ) {
-            ch_UPS += w->ammo_remaining() / 0.6;
+            ch_UPS += w->ammo_remaining() / 0.5;
         }
         if( !update_required && w->encumbrance_update_ ) {
             update_required = true;

@@ -379,7 +379,7 @@ struct time_info {
         using char_t = typename Stream::char_type;
         using base   = std::basic_ostream<char_t>;
 
-        static_assert( std::is_base_of<base, Stream>::value, "" );
+        static_assert( std::is_base_of_v<base, Stream>, "" );
 
         out << std::setfill( '0' );
         out << std::setw( 2 ) << t.hours << ':' << std::setw( 2 ) << t.minutes << ':' <<
@@ -698,7 +698,7 @@ void DebugFile::init( DebugOutput output_mode, const std::string &filename )
         break;
         default:
             std::cerr << "Unexpected debug output mode " << static_cast<int>( output_mode )
-                      << std::endl;
+                      << '\n';
             return;
     }
 
@@ -1009,7 +1009,7 @@ static void write_demangled_frame( std::ostream &out, const char *frame )
         out << "\n    " << frame;
     }
 #elif defined(MACOSX)
-    //1   cataclysm-tiles                     0x0000000102ba2244 _ZL9log_crashPKcS0_ + 608
+    //1   cataclysm-bn-tiles                     0x0000000102ba2244 _ZL9log_crashPKcS0_ + 608
     static const std::regex symbol_regex( R"(^(.*)(0x[a-f0-9]{16})\s(.*)\s\+\s([0-9]+)$)" );
     std::cmatch match_result;
     if( std::regex_search( frame, match_result, symbol_regex ) && match_result.size() == 5 ) {
@@ -1162,7 +1162,7 @@ void debug_write_backtrace( std::ostream &out )
     static backtrace_state *bt_state = bt_create_state( nullptr, 0, bt_error );
     if( bt_state ) {
         bt_full( bt_state, 0, bt_full_print, bt_error );
-        out << std::endl;
+        out << '\n';
     } else {
         out << "\n\n    Failed to initialize libbacktrace\n";
     }
@@ -1233,7 +1233,7 @@ void debug_write_backtrace( std::ostream &out )
 
     for( int i = 0; i < count; ++i ) {
         // An example string from backtrace_symbols is
-        //   ./cataclysm-tiles(_Z21debug_write_backtraceRSo+0x3d) [0x55ddebfa313d]
+        //   ./cataclysm-bn-tiles(_Z21debug_write_backtraceRSo+0x3d) [0x55ddebfa313d]
         // From that we need to extract the binary name, the symbol
         // name, and the offset within the symbol.  We don't need to
         // extract the address (the last thing) because that's already
@@ -1356,21 +1356,21 @@ void output_repetitions( std::ostream &out )
         if( rep_folder.repeat_count > 1 ) {
             out << "[ Previous repeated " << ( rep_folder.repeat_count - 1 ) << " times ]";
         }
-        out << std::endl;
+        out << '\n';
         out << rep_folder.m_time << " ";
         // repetition folding is only done through realDebugmsg
         out << io::enum_to_string<DL>( DL::Error ) << " ";
         out << io::enum_to_string<DC>( DC::DebugMsg ) << " ";
         out << ": ";
         out << rep_folder.m_filename << ":" << rep_folder.m_line << " [" << rep_folder.m_funcname << "] " <<
-            rep_folder.m_text << std::endl;
+            rep_folder.m_text << '\n';
         rep_folder.reset();
     }
 }
 
 detail::DebugLogGuard::~DebugLogGuard()
 {
-    *s << std::endl;
+    *s << '\n';
 }
 
 detail::DebugLogGuard detail::realDebugLog( DL lev, DC cl, const char *filename,
@@ -1417,7 +1417,7 @@ detail::DebugLogGuard detail::realDebugLog( DL lev, DC cl, const char *filename,
             time_t after = time( nullptr );
             // Cool down for 60s between backtrace emissions.
             next_backtrace = after + 60;
-            out << "Backtrace emission took " << after - now << " seconds." << std::endl;
+            out << "Backtrace emission took " << after - now << " seconds." << '\n';
             cata::debug_write_lua_backtrace( out );
             out << "(continued from above) " << io::enum_to_string( lev ) << ": ";
         }

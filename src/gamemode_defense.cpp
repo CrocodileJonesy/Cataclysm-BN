@@ -8,7 +8,6 @@
 
 #include "action.h"
 #include "avatar.h"
-#include "basecamp.h"
 #include "color.h"
 #include "construction.h"
 #include "coordinate_conversions.h"
@@ -98,7 +97,7 @@ defense_game::defense_game()
 bool defense_game::init()
 {
     calendar::turn = calendar::turn_zero + 12_hours; // Start at noon
-    get_weather().temperature = 65;
+    get_weather().update_weather();
     if( !g->u.create( character_type::CUSTOM ) ) {
         return false;
     }

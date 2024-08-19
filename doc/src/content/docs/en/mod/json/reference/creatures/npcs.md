@@ -536,20 +536,22 @@ effects should be arranged in a list and are processed in the order listed.
 
 ### Missions
 
-| Effect            | Description                                                     |
-| ----------------- | --------------------------------------------------------------- |
-| `assign_mission`  | Assigns a previously selected mission to your character.        |
-| `mission_success` | Resolves the current mission successfully.                      |
-| `mission_failure` | Resolves the current mission as a failure.                      |
-| `clear_mission`   | Clears the mission from the your character's assigned missions. |
-| `mission_reward`  | Gives the player the mission's reward.                          |
+| Effect                                                           | Description                                                                                                      |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `assign_mission`                                                 | Assigns a previously selected mission to your character.                                                         |
+| `mission_success`                                                | Resolves the current mission successfully.                                                                       |
+| `mission_failure`                                                | Resolves the current mission as a failure.                                                                       |
+| `clear_mission`                                                  | Clears the mission from the your character's assigned missions.                                                  |
+| `mission_reward`                                                 | Gives the player the mission's reward.                                                                           |
+| `assign_mission: mission_type_id string`                         | Will assign mission `mission_type_id` to the player.                                                             |
+| `finish_mission: mission_type_id string`,`success: success_bool` | Will complete mission `mission_type_id` to the player as a success if `success` is true, as a failure otherwise. |
 
 ### Stats / Morale
 
 | Effect               | Description                                                                                                                                                                                                               |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `give_aid`           | Removes all bites, infection, and bleeding from your character's body and heals 10-25 HP of injury on each of your character's body parts. Takes 30 minutes. NPC receives 30 minutes of `currently_busy` effect on start. |
-| `give_aid_all`       | Performs `give_aid` on your character and each of your character's NPC allies in crafting range. Takes 1 hour. NPC receives 1 hour of `currently_busy` effect on start.                                                   |
+| `give_all_aid`       | Performs `give_aid` on your character and each of your character's NPC allies in crafting range. Takes 1 hour. NPC receives 1 hour of `currently_busy` effect on start.                                                   |
 | `buy_haircut`        | Gives your character a haircut morale boost for 12 hours.                                                                                                                                                                 |
 | `buy_shave`          | Gives your character a shave morale boost for 6 hours.                                                                                                                                                                    |
 | `morale_chat`        | Gives your character a pleasant conversation morale boost for 6 hours.                                                                                                                                                    |
@@ -598,9 +600,6 @@ effects should be arranged in a list and are processed in the order listed.
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `assign_guard`                         | Makes the NPC into a guard. If allied and at a camp, they will be assigned to that camp.                                                                        |
 | `stop_guard`                           | Releases the NPC from their guard duty (also see `assign_guard`). Friendly NPCs will return to following.                                                       |
-| `start_camp`                           | The NPC will start a faction camp with the player.                                                                                                              |
-| `recover_camp`                         | Makes the NPC the overseer of an existing camp that doesn't have an overseer.                                                                                   |
-| `remove_overseer`                      | Makes the NPC stop being an overseer, abandoning the faction camp.                                                                                              |
 | `wake_up`                              | Wakes up sleeping, but not sedated, NPCs.                                                                                                                       |
 | `reveal_stats`                         | Reveals the NPC's stats, based on the player's skill at assessing them.                                                                                         |
 | `end_conversation`                     | Ends the conversation and makes the NPC ignore you from now on.                                                                                                 |

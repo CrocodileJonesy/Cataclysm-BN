@@ -531,7 +531,7 @@ void inventory::form_from_map( map &m, std::vector<tripoint> pts, const Characte
             for( auto &i : m.i_at( p ) ) {
                 // if it's *the* player requesting this from from map inventory
                 // then don't allow items owned by another faction to be factored into recipe components etc.
-                if( pl && !i->is_owned_by( *pl, true ) ) {
+                if( pl && !i->is_owned_by( *pl, true ) && i->get_owner()->likes_u >= -10 ) {
                     continue;
                 }
                 if( allow_liquids || !i->made_of( LIQUID ) ) {
@@ -1437,6 +1437,7 @@ item &location_inventory::add_item_by_items_type_cache( detached_ptr<item> &&new
     if( should_stack ) {
         for( auto &elem : inv.items ) {
             item *&it = *elem.begin();
+            // NOLINTNEXTLINE(bugprone-use-after-move)
             if( it->stacks_with( *newit ) ) {
                 if( it->merge_charges( std::move( newit ) ) ) {
                     return null_item_reference();
@@ -1465,6 +1466,7 @@ void location_inventory::add_item_keep_invlet( detached_ptr<item> &&newit )
     as_p->resolve_saved_loc();
     for( auto &elem : inv.items ) {
         item *&it = *elem.begin();
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         if( it->stacks_with( *newit ) ) {
             if( it->merge_charges( std::move( newit ) ) ) {
                 return;

@@ -245,6 +245,8 @@ enum action_id : int {
     ACTION_MORALE,
     /** Display messages screen */
     ACTION_MESSAGES,
+    /** Open external Wiki webpage */
+    ACTION_OPEN_WIKI,
     /** Display help screen */
     ACTION_HELP,
     /** Display main menu */
@@ -267,6 +269,11 @@ enum action_id : int {
     ACTION_WORLD_MODS,
     /** Open distraction manager */
     ACTION_DISTRACTION_MANAGER,
+    /**@}*/
+
+    // Additional UI action
+    /**@{*/
+    ACTION_TOGGLE_CHARACTER_PREVIEW_CLOTHES,
     /**@}*/
 
     // Debug Functions

@@ -61,7 +61,7 @@ std::vector<char> keys_bound_to( action_id act, const bool restrict_to_printable
 action_id action_from_key( char ch )
 {
     input_context ctxt = get_default_mode_input_context();
-    const input_event event( ch, CATA_INPUT_KEYBOARD );
+    const input_event event( ch, input_event_t::keyboard );
     const std::string &action = ctxt.input_to_action( event );
     return look_up_action( action );
 }
@@ -263,6 +263,8 @@ std::string action_ident( action_id act )
             return "morale";
         case ACTION_MESSAGES:
             return "messages";
+        case ACTION_OPEN_WIKI:
+            return "open_wiki";
         case ACTION_HELP:
             return "help";
         case ACTION_DEBUG:
@@ -347,6 +349,8 @@ std::string action_ident( action_id act )
             return "open_world_mods";
         case ACTION_DISTRACTION_MANAGER:
             return "open_distraction_manager";
+        case ACTION_TOGGLE_CHARACTER_PREVIEW_CLOTHES:
+            return "TOGGLE_CHARACTER_PREVIEW_CLOTHES";
         case ACTION_NULL:
             return "null";
         default:
@@ -386,6 +390,7 @@ bool can_action_change_worldstate( const action_id act )
         case ACTION_FACTIONS:
         case ACTION_MORALE:
         case ACTION_MESSAGES:
+        case ACTION_OPEN_WIKI:
         case ACTION_HELP:
         case ACTION_MAIN_MENU:
         case ACTION_KEYBINDINGS:
@@ -396,6 +401,7 @@ bool can_action_change_worldstate( const action_id act )
         case ACTION_COLOR:
         case ACTION_WORLD_MODS:
         case ACTION_DISTRACTION_MANAGER:
+        case ACTION_TOGGLE_CHARACTER_PREVIEW_CLOTHES:
         // Debug Functions
         case ACTION_TOGGLE_FULLSCREEN:
         case ACTION_DEBUG:
@@ -799,7 +805,7 @@ action_id handle_action_menu()
             register_actions( { ACTION_SAVE } );
             register_action_if_hotkey_assigned( ACTION_QUICKLOAD );
             register_action_if_hotkey_assigned( ACTION_SUICIDE );
-            register_actions( { ACTION_HELP } );
+            register_actions( { ACTION_OPEN_WIKI, ACTION_HELP } );
             if( ( entry = &entries.back() ) ) {
                 // help _is_a menu.
                 entry->txt += "…";
@@ -923,7 +929,7 @@ action_id handle_main_menu()
     const auto register_actions = make_register_actions( entries, ctxt );
 
     register_actions( {
-        ACTION_HELP, ACTION_KEYBINDINGS, ACTION_OPTIONS, ACTION_AUTOPICKUP, ACTION_AUTONOTES,
+        ACTION_OPEN_WIKI, ACTION_HELP, ACTION_KEYBINDINGS, ACTION_OPTIONS, ACTION_AUTOPICKUP, ACTION_AUTONOTES,
         ACTION_SAFEMODE, ACTION_DISTRACTION_MANAGER, ACTION_COLOR, ACTION_WORLD_MODS,
         ACTION_ACTIONMENU, ACTION_QUICKSAVE, ACTION_SAVE, ACTION_DEBUG, ACTION_LUA_CONSOLE,
         ACTION_LUA_RELOAD

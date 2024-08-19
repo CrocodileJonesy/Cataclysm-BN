@@ -22,6 +22,16 @@
   },
   {
     "type": "city_building",
+    "id": "2Story03",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, 0 ], "overmap": "2Story03_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "2Story03_2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "2Story03_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
     "id": "2storyModern01",
     "locations": [ "land" ],
     "overmaps": [
@@ -66,6 +76,40 @@
       { "point": [ 1, 0, 1 ], "overmap": "2StoryModern04_2_2_north" },
       { "point": [ 0, 0, 2 ], "overmap": "2StoryModern04_roof_1_north" },
       { "point": [ 1, 0, 2 ], "overmap": "2StoryModern04_roof_2_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "2StoryModern05",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "2StoryModern05_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "2StoryModern05_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "2StoryModern05_2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "2StoryModern05_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "2StoryModern06",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "2StoryModern06_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "2StoryModern06_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "2StoryModern06_2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "2StoryModern06_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "3Story01",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "3Story01_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "3Story01_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "3Story01_2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "3Story01_3_north" },
+      { "point": [ 0, 0, 3 ], "overmap": "3Story01_roof_north" }
     ]
   },
   {
@@ -305,6 +349,46 @@
   },
   {
     "type": "city_building",
+    "id": "bungalow27",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "bungalow27_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "bungalow27_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "bungalow27_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "bungalow28",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "bungalow28_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "bungalow28_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "bungalow28_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "bungalow29",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "bungalow29_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "bungalow29_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "bungalow29_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "bungalow30",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "bungalow30_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "bungalow30_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "bungalow30_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
     "id": "urban_1_house",
     "overmaps": [
       { "point": [ 1, 0, 0 ], "overmap": "urban_1_1_south" },
@@ -439,6 +523,16 @@
     ],
     "locations": [ "land" ],
     "flags": [ "CLASSIC" ]
+  },
+  {
+    "type": "city_building",
+    "id": "house_coop01",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "house_coop01_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "house_coop01_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "house_coop01_roof_north" }
+    ]
   },
   {
     "type": "city_building",
@@ -717,6 +811,12 @@
   },
   {
     "type": "city_building",
+    "id": "house_22ab",
+    "locations": [ "land" ],
+    "overmaps": [ { "point": [ 0, 0, 0 ], "overmap": "house_22ab_north" }, { "point": [ 0, 0, 1 ], "overmap": "house_22_roof_north" } ]
+  },
+  {
+    "type": "city_building",
     "id": "house_23",
     "locations": [ "land" ],
     "overmaps": [ { "point": [ 0, 0, 0 ], "overmap": "house_23_north" }, { "point": [ 0, 0, 1 ], "overmap": "house_23_roof_north" } ]
@@ -972,6 +1072,39 @@
       { "point": [ 0, 0, 1 ], "overmap": "house_fence07_2_north" },
       { "point": [ 0, 0, 2 ], "overmap": "house_fence07_3_north" },
       { "point": [ 0, 0, 3 ], "overmap": "house_fence07_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "house_fence08",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "house_fence08_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "house_fence08_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "house_fence08_2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "house_fence08_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "house_fence09",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "house_fence09_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "house_fence09_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "house_fence09_2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "house_fence09_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "house_fence10",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, -1 ], "overmap": "house_fence10_basement_north" },
+      { "point": [ 0, 0, 0 ], "overmap": "house_fence10_1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "house_fence10_2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "house_fence10_roof_north" }
     ]
   },
   {
@@ -2640,12 +2773,14 @@
       { "point": [ 1, 0, 1 ], "overmap": "movietheater_roof_1_0_north" },
       { "point": [ 2, 0, 0 ], "overmap": "movietheater_2_0_north" },
       { "point": [ 2, 0, 1 ], "overmap": "movietheater_roof_2_0_north" },
+      { "point": [ 2, 0, 2 ], "overmap": "movietheater_roof2_2_0_north" },
       { "point": [ 0, 1, 0 ], "overmap": "movietheater_0_1_north" },
       { "point": [ 0, 1, 1 ], "overmap": "movietheater_roof_0_1_north" },
       { "point": [ 1, 1, 0 ], "overmap": "movietheater_1_1_north" },
       { "point": [ 1, 1, 1 ], "overmap": "movietheater_roof_1_1_north" },
       { "point": [ 2, 1, 0 ], "overmap": "movietheater_2_1_north" },
       { "point": [ 2, 1, 1 ], "overmap": "movietheater_roof_2_1_north" },
+      { "point": [ 2, 1, 2 ], "overmap": "movietheater_roof2_2_1_north" },
       { "point": [ 0, 2, 0 ], "overmap": "movietheater_0_2_north" },
       { "point": [ 0, 2, 1 ], "overmap": "movietheater_roof_0_2_north" },
       { "point": [ 1, 2, 0 ], "overmap": "movietheater_1_2_north" },
@@ -3283,7 +3418,7 @@
   },
   {
     "type": "city_building",
-    "id": "bike_shop_1",
+    "id": "s_bike_shop_1",
     "locations": [ "land" ],
     "overmaps": [
       { "point": [ 0, 0, 0 ], "overmap": "s_bike_shop_1_north" },
@@ -3433,6 +3568,15 @@
       { "point": [ 0, 0, 0 ], "overmap": "craft_shop_2_north" },
       { "point": [ 0, 0, 1 ], "overmap": "craft_shop_2ndfloor_2_north" },
       { "point": [ 0, 0, 2 ], "overmap": "craft_shop_roof_2_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "craft_shop_3",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, 0 ], "overmap": "craft_shop_3_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "craft_shop_roof_3_north" }
     ]
   },
   {
@@ -3962,5 +4106,34 @@
     "id": "s_games",
     "locations": [ "land" ],
     "overmaps": [ { "point": [ 0, 0, 0 ], "overmap": "s_games_north" }, { "point": [ 0, 0, 1 ], "overmap": "s_games_roof_north" } ]
+  },
+  {
+    "type": "city_building",
+    "id": "afs_augmentation_clinic_1",
+    "overmaps": [
+      { "point": [ 0, 0, 0 ], "overmap": "afs_augmentation_clinic_n1_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "afs_augmentation_clinic_n2_north" },
+      { "point": [ 0, 0, 2 ], "overmap": "afs_augmentation_clinic_n3_north" },
+      { "point": [ 0, 0, 3 ], "overmap": "afs_augmentation_clinic_n4_north" }
+    ],
+    "locations": [ "land" ]
+  },
+  {
+    "type": "city_building",
+    "id": "community_garden",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, 0 ], "overmap": "communitygarden_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "communitygarden_roof_north" }
+    ]
+  },
+  {
+    "type": "city_building",
+    "id": "community_garden_2",
+    "locations": [ "land" ],
+    "overmaps": [
+      { "point": [ 0, 0, 0 ], "overmap": "communitygarden_2_north" },
+      { "point": [ 0, 0, 1 ], "overmap": "communitygarden_2_roof_north" }
+    ]
   }
 ]

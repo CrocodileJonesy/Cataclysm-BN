@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "avatar.h"
-#include "basecamp.h"
 #include "bodypart.h"
 #include "calendar.h"
 #include "cata_utility.h"
@@ -61,6 +60,7 @@
 #include "vehicle_part.h"
 #include "vpart_position.h"
 #include "weather.h"
+#include "profile.h"
 
 static const itype_id itype_rm13_armor_on( "rm13_armor_on" );
 static const itype_id itype_rock( "rock" );
@@ -141,6 +141,8 @@ int map::burn_body_part( player &u, field_entry &cur, body_part bp, const int sc
 
 void map::process_fields()
 {
+    ZoneScoped;
+
     const int minz = zlevels ? -OVERMAP_DEPTH : abs_sub.z;
     const int maxz = zlevels ? OVERMAP_HEIGHT : abs_sub.z;
     for( int z = minz; z <= maxz; z++ ) {
@@ -1541,8 +1543,9 @@ void map::player_in_field( player &u )
                     const int intensity = cur.get_field_intensity();
                     bool inhaled = u.add_env_effect( effect_poison, bp_mouth, 5, intensity * 1_minutes );
                     if( u.has_trait( trait_THRESH_MYCUS ) || u.has_trait( trait_THRESH_MARLOSS ) ||
-                        ( ft == fd_insecticidal_gas && ( u.get_highest_category() == "INSECT" ||
-                                                         u.get_highest_category() == "SPIDER" ) ) ) {
+                        ( ft == fd_insecticidal_gas &&
+                          ( u.get_highest_category() == mutation_category_id( "INSECT" ) ||
+                            u.get_highest_category() == mutation_category_id( "SPIDER" ) ) ) ) {
                         inhaled |= u.add_env_effect( effect_badpoison, bp_mouth, 5, intensity * 1_minutes );
                         u.hurtall( rng( intensity, intensity * 2 ), nullptr );
                         u.add_msg_if_player( m_bad, _( "The %s burns your skin." ), cur.name() );
@@ -1559,6 +1562,8 @@ void map::player_in_field( player &u )
 
 void map::creature_in_field( Creature &critter )
 {
+    ZoneScoped;
+
     bool in_vehicle = false;
     bool inside_vehicle = false;
     player *u = critter.as_player();

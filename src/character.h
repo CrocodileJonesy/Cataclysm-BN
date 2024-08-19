@@ -47,6 +47,7 @@
 #include "string_formatter.h"
 #include "type_id.h"
 #include "units.h"
+#include "units_temperature.h"
 #include "visitable.h"
 #include "weighted_list.h"
 
@@ -368,7 +369,7 @@ class Character : public Creature, public location_visitable<Character>
         void mod_stat( const std::string &stat, float modifier ) override;
 
         /** Get size class of character **/
-        m_size get_size() const override;
+        creature_size get_size() const override;
         /** Recalculate size class of character **/
         void recalculate_size();
 
@@ -644,28 +645,18 @@ class Character : public Creature, public location_visitable<Character>
         std::vector<special_attack> mutation_attacks( Creature &t ) const;
         /** Returns the bonus bashing damage the player deals based on their stats */
         float bonus_damage( bool random ) const;
-        /** Returns weapon skill */
-        float get_melee_hit_base() const;
+        /** Everything up to, but excluding, final roll of @ref hit_roll */
+        float get_melee_hit( const item &weapon, const attack_statblock &attack ) const;
         /** Returns the player's basic hit roll that is compared to the target's dodge roll */
-        float hit_roll() const override;
+        float hit_roll( const item &weapon, const attack_statblock &attack ) const;
         /** Returns the chance to critical given a hit roll and target's dodge roll */
         double crit_chance( float roll_hit, float target_dodge, const item &weap ) const;
         /** Returns true if the player scores a critical hit */
-        bool scored_crit( float target_dodge, const item &weap ) const;
+        bool scored_crit( float target_dodge, const item &weap, const attack_statblock &attack ) const;
         /** Returns cost (in moves) of attacking with given item (no modifiers, like stuck) */
         int attack_cost( const item &weap ) const;
         /** Gets melee accuracy component from weapon+skills */
-        float get_hit_weapon( const item &weap ) const;
-
-        // If average == true, adds expected values of random rolls instead of rolling.
-        /** Adds all 3 types of physical damage to instance */
-        void roll_all_damage( bool crit, damage_instance &di, bool average, const item &weap ) const;
-        /** Adds player's total bash damage to the damage instance */
-        void roll_bash_damage( bool crit, damage_instance &di, bool average, const item &weap ) const;
-        /** Adds player's total cut damage to the damage instance */
-        void roll_cut_damage( bool crit, damage_instance &di, bool average, const item &weap ) const;
-        /** Adds player's total stab damage to the damage instance */
-        void roll_stab_damage( bool crit, damage_instance &di, bool average, const item &weap ) const;
+        float get_hit_weapon( const item &weap, const attack_statblock &attack ) const;
 
     private:
         /** Check if an area-of-effect technique has valid targets */
@@ -923,7 +914,7 @@ class Character : public Creature, public location_visitable<Character>
         /** Returns true if the player doesn't have the mutation or a conflicting one and it complies with the force typing */
         bool mutation_ok( const trait_id &mutation, bool force_good, bool force_bad ) const;
         /** Picks a random valid mutation in a category and mutate_towards() it */
-        void mutate_category( const std::string &mut_cat );
+        void mutate_category( const mutation_category_id &mut_cat );
         /** Mutates toward one of the given mutations, upgrading or removing conflicts if necessary */
         bool mutate_towards( std::vector<trait_id> muts, int num_tries = INT_MAX );
         /** Mutates toward the entered mutation, upgrading or removing conflicts if necessary */
@@ -939,7 +930,7 @@ class Character : public Creature, public location_visitable<Character>
         /** Recalculates mutation_category_level[] values for the player */
         void set_highest_cat_level();
         /** Returns the highest mutation category */
-        std::string get_highest_category() const;
+        mutation_category_id get_highest_category() const;
         /** Recalculates mutation drench protection for all bodyparts (ignored/good/neutral stats) */
         void drench_mut_calc();
         /** Recursively traverses the mutation's prerequisites and replacements, building up a map */
@@ -949,8 +940,8 @@ class Character : public Creature, public location_visitable<Character>
         /**
         * Returns true if this category of mutation is allowed.
         */
-        bool is_category_allowed( const std::vector<std::string> &category ) const;
-        bool is_category_allowed( const std::string &category ) const;
+        bool is_category_allowed( const std::vector<mutation_category_id> &category ) const;
+        bool is_category_allowed( const mutation_category_id &category ) const;
 
         bool is_weak_to_water() const;
 
@@ -1663,9 +1654,10 @@ class Character : public Creature, public location_visitable<Character>
         int focus_pool = 0;
         int cash = 0;
         std::set<character_id> follower_ids;
+        weak_ptr_fast<Creature> last_target;
+        std::optional<tripoint> last_target_pos;
         // Save favorite ammo location
         safe_reference<item> ammo_location;
-        std::set<tripoint_abs_omt> camps;
         /* crafting inventory cached time */
         time_point cached_time;
 
@@ -1847,7 +1839,7 @@ class Character : public Creature, public location_visitable<Character>
         // the amount healed per bodypart per day
         std::array<int, num_hp_parts> healed_total;
 
-        std::map<std::string, int> mutation_category_level;
+        std::map<mutation_category_id, int> mutation_category_level;
 
         int adjust_for_focus( int amount ) const;
         void update_type_of_scent( bool init = false );
@@ -2139,7 +2131,7 @@ class Character : public Creature, public location_visitable<Character>
         /** Drenches the player with water, saturation is the percent gotten wet */
         void drench( int saturation, const body_part_set &flags, bool ignore_waterproof );
         /** Recalculates morale penalty/bonus from wetness based on mutations, equipment and temperature */
-        void apply_wetness_morale( int temperature );
+        void apply_wetness_morale( const units::temperature &temperature );
         std::vector<std::string> short_description_parts() const;
         std::string short_description() const;
         int print_info( const catacurses::window &w, int vStart, int vLines, int column ) const override;
@@ -2209,7 +2201,7 @@ class Character : public Creature, public location_visitable<Character>
         /**height at character creation*/
         int init_height = 175;
         /** Size class of character. */
-        m_size size_class = MS_MEDIUM;
+        creature_size size_class = creature_size::medium;
 
         trap_map known_traps;
         pimpl<char_encumbrance_data> encumbrance_cache;

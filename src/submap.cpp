@@ -6,7 +6,6 @@
 #include <memory>
 #include <utility>
 
-#include "basecamp.h"
 #include "int_id.h"
 #include "mapdata.h"
 #include "tileray.h"
@@ -43,12 +42,12 @@ void submap::swap( submap &first, submap &second )
     std::swap( first.spawns, second.spawns );
     std::swap( first.vehicles, second.vehicles );
     std::swap( first.partial_constructions, second.partial_constructions );
-    std::swap( first.camp, second.camp );
     std::swap( first.active_furniture, second.active_furniture );
     std::swap( first.is_uniform, second.is_uniform );
     std::swap( first.computers, second.computers );
     std::swap( first.legacy_computer, second.legacy_computer );
     std::swap( first.temperature, second.temperature );
+    std::swap( first.cosmetics, second.cosmetics );
 
     for( int x = 0; x < SEEX; x++ ) {
         for( int y = 0; y < SEEY; y++ ) {

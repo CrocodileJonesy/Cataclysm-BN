@@ -175,7 +175,7 @@ bool enchantment::is_active( const Character &guy, const item &parent ) const
         return false;
     }
 
-    return is_active( guy, parent.active );
+    return is_active( guy, parent.is_active() );
 }
 
 bool enchantment::is_active( const Character &guy, const bool active ) const
@@ -536,7 +536,7 @@ bool is_set_value( const trait_id &mut, float val )
 }
 
 template <float mutation_branch::*First, float mutation_branch::* ...Rest,
-          typename std::enable_if<( sizeof...( Rest ) > 0 ), bool>::type NonEmpty = false >
+          std::enable_if_t<( sizeof...( Rest ) > 0 ), bool>NonEmpty = false >
                   bool is_set_value( const trait_id &mut, float val )
 {
     return ( *mut ).*First == val && is_set_value<Rest...>( mut, val );

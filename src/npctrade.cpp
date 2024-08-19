@@ -51,12 +51,15 @@ void npc_trading::transfer_items( std::vector<item_pricing> &stuff, player &,
         }
 
         item &gift = *ip.locs.front();
-        gift.set_owner( receiver );
-        int charges = npc_gives ? ip.u_charges : ip.npc_charges;
+        const int charges = npc_gives ? ip.u_charges : ip.npc_charges;
 
         if( ip.charges ) {
-            receiver.i_add( gift.split( charges ) );
+            auto to_give = gift.split( charges );
+            to_give->set_owner( receiver );
+
+            receiver.i_add( std::move( to_give ) );
         } else {
+            gift.set_owner( receiver );
             for( item *&it : ip.locs ) {
                 receiver.i_add( it->detach() );
             }
@@ -417,7 +420,7 @@ void trading_window::show_item_data( size_t offset,
             exit = true;
         } else if( action == "ANY_INPUT" ) {
             const input_event evt = ctxt.get_raw_input();
-            if( evt.type != CATA_INPUT_KEYBOARD || evt.sequence.empty() ) {
+            if( evt.type != input_event_t::keyboard || evt.sequence.empty() ) {
                 continue;
             }
             size_t help = evt.get_first_input();
@@ -565,7 +568,7 @@ bool trading_window::perform_trade( npc &np, const std::string &deal )
             confirm = false;
         } else if( action == "ANY_INPUT" ) {
             const input_event evt = ctxt.get_raw_input();
-            if( evt.type != CATA_INPUT_KEYBOARD || evt.sequence.empty() ) {
+            if( evt.type != input_event_t::keyboard || evt.sequence.empty() ) {
                 continue;
             }
             size_t ch = evt.get_first_input();
@@ -677,7 +680,10 @@ void trading_window::update_npc_owed( npc &np )
 // cost is positive when the player owes the NPC money for a service to be performed
 bool npc_trading::trade( npc &np, int cost, const std::string &deal )
 {
-    np.shop_restock();
+    // Only allow actual shopkeepers to refresh their inventory like this
+    if( np.mission == NPC_MISSION_SHOPKEEP ) {
+        np.shop_restock();
+    }
     //np.drop_items( np.weight_carried() - np.weight_capacity(),
     //               np.volume_carried() - np.volume_capacity() );
     np.drop_invalid_inventory();

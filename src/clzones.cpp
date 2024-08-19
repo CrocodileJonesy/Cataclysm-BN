@@ -43,7 +43,6 @@
 
 static const item_category_id itcat_food( "food" );
 
-static const zone_type_id zone_CAMP_FOOD( "CAMP_FOOD" );
 static const zone_type_id zone_CONSTRUCTION_BLUEPRINT( "CONSTRUCTION_BLUEPRINT" );
 static const zone_type_id zone_FARM_PLOT( "FARM_PLOT" );
 static const zone_type_id zone_LOOT_CORPSE( "LOOT_CORPSE" );
@@ -61,22 +60,6 @@ static const zone_type_id zone_NO_NPC_PICKUP( "NO_NPC_PICKUP" );
 
 zone_manager::zone_manager()
 {
-    types.emplace( zone_NO_AUTO_PICKUP,
-                   zone_type( translate_marker( "No Auto Pickup" ),
-                              translate_marker( "You won't auto-pickup items inside the zone." ) ) );
-    types.emplace( zone_NO_NPC_PICKUP,
-                   zone_type( translate_marker( "No NPC Pickup" ),
-                              translate_marker( "Friendly NPCs don't pickup items inside the zone." ) ) );
-    types.emplace( zone_type_id( "NPC_RETREAT" ),
-                   zone_type( translate_marker( "NPC Retreat" ),
-                              translate_marker( "When fleeing, friendly NPCs will attempt to retreat toward this zone if it is within 60 tiles." ) ) );
-    types.emplace( zone_type_id( "NPC_NO_INVESTIGATE" ),
-                   zone_type( translate_marker( "NPC Ignore Sounds" ),
-                              translate_marker( "Friendly NPCs won't investigate unseen sounds coming from this zone." ) ) );
-    types.emplace( zone_type_id( "NPC_INVESTIGATE_ONLY" ),
-                   zone_type( translate_marker( "NPC Investigation Area" ),
-                              translate_marker( "Friendly NPCs will investigate unseen sounds only if they come from inside this area." ) ) );
-
     for( const zone_type &zone : zone_type::get_all() ) {
         types.emplace( zone.id, zone );
     }
@@ -109,12 +92,6 @@ zone_manager::zone_manager()
     types.emplace( zone_type_id( "VEHICLE_PATROL" ),
                    zone_type( translate_marker( "Vehicle Patrol Zone" ),
                               translate_marker( "Vehicles with an autopilot will patrol in this zone." ) ) );
-    types.emplace( zone_type_id( "CAMP_STORAGE" ),
-                   zone_type( translate_marker( "Basecamp: Storage" ),
-                              translate_marker( "Items in this zone will be added to a basecamp's inventory for use by it's workers." ) ) );
-    types.emplace( zone_CAMP_FOOD,
-                   zone_type( translate_marker( "Basecamp: Food" ),
-                              translate_marker( "Items in this zone will be added to a basecamp's food supply in the Distribute Food mission." ) ) );
     types.emplace( zone_type_id( "AUTO_EAT" ),
                    zone_type( translate_marker( "Auto Eat" ),
                               translate_marker( "Items in this zone will be automatically eaten during a long activity if you get hungry." ) ) );
@@ -726,7 +703,7 @@ bool zone_manager::has_loot_dest_near( const tripoint &where ) const
 {
     for( const auto &ztype : get_manager().get_types() ) {
         const zone_type_id &type = ztype.first;
-        if( type == zone_CAMP_FOOD || type == zone_FARM_PLOT ||
+        if( type == zone_FARM_PLOT ||
             type == zone_LOOT_UNSORTED || type == zone_LOOT_IGNORE ||
             type == zone_CONSTRUCTION_BLUEPRINT ||
             type == zone_NO_AUTO_PICKUP || type == zone_NO_NPC_PICKUP ) {
@@ -1136,13 +1113,16 @@ void zone_manager::serialize( JsonOut &json ) const
 void zone_manager::deserialize( JsonIn &jsin )
 {
     jsin.read( zones );
-    for( auto it = zones.begin(); it != zones.end(); ++it ) {
-        const zone_type_id zone_type = it->get_type();
-        if( !has_type( zone_type ) ) {
-            zones.erase( it );
-            debugmsg( "Invalid zone type: %s", zone_type.c_str() );
-        }
-    }
+    zones.erase( std::remove_if( zones.begin(), zones.end(),
+    [this]( const zone_data & it ) -> bool {
+        const zone_type_id zone_type = it.get_type();
+        const bool is_valid = has_type( zone_type );
+
+        if( !is_valid ) debugmsg( "Invalid zone type: %s", zone_type.c_str() );
+
+        return !is_valid;
+    } ),
+    zones.end() );
 }
 
 void zone_data::serialize( JsonOut &json ) const

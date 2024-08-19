@@ -95,6 +95,9 @@ class iuse_transform : public iuse_actor
         /** displayed if item is in player possession with %s replaced by item name */
         translation need_charges_msg;
 
+        /** charges needed for process of transforming item */
+        int transform_charges = 0;
+
         /** Tool qualities needed, e.g. "fine bolt turning 1". **/
         std::map<quality_id, int> qualities_needed;
 
@@ -1162,7 +1165,7 @@ class detach_gunmods_actor : public iuse_actor
 class mutagen_actor : public iuse_actor
 {
     public:
-        std::string mutation_category;
+        mutation_category_id mutation_category;
         bool is_weak = false;
         bool is_strong = false;
 
@@ -1177,7 +1180,7 @@ class mutagen_actor : public iuse_actor
 class mutagen_iv_actor : public iuse_actor
 {
     public:
-        std::string mutation_category;
+        mutation_category_id mutation_category;
 
         mutagen_iv_actor() : iuse_actor( "mutagen_iv" ) {}
 

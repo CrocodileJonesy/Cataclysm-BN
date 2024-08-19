@@ -12,6 +12,7 @@
 #include "cata_utility.h"
 #include "catacharset.h" // used for utf8_width()
 #include "character_display.h"
+#include "clothing_utils.h"
 #include "debug.h"
 #include "enums.h"
 #include "flag.h"
@@ -83,9 +84,9 @@ item_penalties get_item_penalties( const location_vector<item>::const_iterator &
             continue;
         }
         const int num_items = std::count_if( c.worn.begin(), c.worn.end(),
-        [layer, bp]( item * const & i ) {
-            return i->get_layer() == layer && i->covers( bp ) && !( i->has_flag( flag_SEMITANGIBLE ) ||
-                    i->has_flag( flag_COMPACT ) );
+        [&layer, &bp, &c]( item * const & i ) {
+            return i->get_layer() == layer && i->covers( bp )
+                   && !( i->has_flag( flag_SEMITANGIBLE ) || is_compact( *i, c ) );
         } );
         if( num_items > 1 ) {
             body_parts_with_stacking_penalty.push_back( bp );
@@ -558,7 +559,7 @@ void show_armor_layers_ui( Character &who )
     int leftListSize = 0;
     int rightListSize = 0;
 
-    ui.on_redraw( [&]( const ui_adaptor & ) {
+    ui.on_redraw( [&]( ui_adaptor & ui ) {
         draw_grid( w_sort_armor, left_w, middle_w );
 
         werase( w_sort_cat );
@@ -637,7 +638,7 @@ void show_armor_layers_ui( Character &who )
         }
 
         mvwprintz( w_encumb, point_east, c_white, _( "Encumbrance and Warmth" ) );
-        character_display::print_encumbrance( w_encumb, who, -1,
+        character_display::print_encumbrance( ui, w_encumb, who, -1,
                                               ( leftListSize > 0 ) ? *access_tmp_worn( leftListIndex ) : nullptr );
 
         // Right header
@@ -723,7 +724,7 @@ void show_armor_layers_ui( Character &who )
                 you.add_msg_if_npc( m_bad, _( "%s is too far to sort armor." ), who.name );
                 return;
             }
-            if( you.attitude_to( you ) != Creature::A_FRIENDLY ) {
+            if( you.attitude_to( you ) != Attitude::A_FRIENDLY ) {
                 you.add_msg_if_npc( m_bad, _( "%s is not friendly!" ), who.name );
                 return;
             }
@@ -885,7 +886,9 @@ void show_armor_layers_ui( Character &who )
             if( loc ) {
                 // wear the item
                 loc->obtain( who );
-                if( !who.as_player()->wear_possessed( *loc, true, access_tmp_worn( leftListIndex ) ) &&
+                const std::optional<location_vector<item>::iterator> position = ( leftListSize > 0 ) ?
+                        access_tmp_worn( leftListIndex ) : std::optional<location_vector<item>::iterator>( std::nullopt );
+                if( !who.as_player()->wear_possessed( *loc, true, position ) &&
                     who.is_npc() ) {
                     // TODO: Pass the reason here
                     popup( _( "Can't put this on!" ) );
